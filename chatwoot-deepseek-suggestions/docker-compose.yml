@@ -1,0 +1,12 @@
+services:
+  chatwoot-deepseek-suggestions:
+    build: .
+    image: chatwoot-deepseek-suggestions:latest
+    container_name: chatwoot-deepseek-suggestions
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8787:8787"
+    # 知识库外置：改 kb/faq.json 即生效（按 mtime 热加载），无需重建镜像
+    volumes:
+      - ./kb:/app/kb

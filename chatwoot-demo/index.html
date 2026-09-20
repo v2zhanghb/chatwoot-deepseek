@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>云仓优选 · 全国次日达的生鲜电商（演示页）</title>
+<!--
+  ┌────────────────────────────────────────────────────────────────┐
+  │ 演示落地页：一个"像模像样的官网"，右下角挂着 Chatwoot 客服气泡  │
+  │                                                                │
+  │ 客户入口 = 本页（可用 IP 访问，不需要域名、不需要备案）        │
+  │ 坐席入口 = http://<同一台主机>:3000                            │
+  │                                                                │
+  │ 对接的 Chatwoot 地址默认取「当前主机名:3000」，所以：          │
+  │   · 本机打开   http://localhost:8080/        → localhost:3000  │
+  │   · 远程打开   http://公网IP:8080/           → 公网IP:3000     │
+  │   · 也可强制指定 http://xxx:8080/?cw=http://1.2.3.4:3000       │
+  └────────────────────────────────────────────────────────────────┘
+-->
+<style>
+  :root {
+    --brand: #16a34a;
+    --brand-dark: #15803d;
+    --ink: #111827;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --bg: #ffffff;
+    --soft: #f9fafb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.65 -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav { display: flex; align-items: center; gap: 26px; height: 62px; }
+  .logo { font-size: 18px; font-weight: 750; letter-spacing: .3px; }
+  .logo span { color: var(--brand); }
+  .nav a.link { color: var(--muted); font-size: 14px; }
+  .nav a.link:hover { color: var(--ink); }
+  .nav .spacer { flex: 1; }
+  .btn {
+    display: inline-block; padding: 9px 18px; border-radius: 8px; font-size: 14px;
+    border: 1px solid var(--line); background: #fff; cursor: pointer;
+  }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+  .btn.primary:hover { background: var(--brand-dark); }
+  .btn.lg { padding: 12px 26px; font-size: 15px; }
+
+  .hero { padding: 74px 0 60px; background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%); }
+  .hero h1 { font-size: 42px; line-height: 1.25; margin: 0 0 14px; letter-spacing: -.5px; }
+  .hero p.sub { font-size: 17px; color: var(--muted); margin: 0 0 28px; max-width: 560px; }
+  .hero .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .badges { display: flex; gap: 22px; margin-top: 34px; color: var(--muted); font-size: 13.5px; flex-wrap: wrap; }
+  .badges b { color: var(--ink); }
+
+  section { padding: 54px 0; }
+  section h2 { font-size: 24px; margin: 0 0 8px; letter-spacing: -.2px; }
+  section .lead { color: var(--muted); margin: 0 0 28px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card {
+    border: 1px solid var(--line); border-radius: 12px; padding: 22px; background: #fff;
+  }
+  .card .ico { font-size: 22px; }
+  .card h3 { font-size: 16px; margin: 12px 0 6px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .strip { background: var(--soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .strip .inner { display: flex; gap: 34px; padding: 26px 0; flex-wrap: wrap; }
+  .strip .item { font-size: 14px; color: var(--muted); }
+  .strip .item b { display: block; font-size: 20px; color: var(--ink); }
+
+  footer { padding: 34px 0 90px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+  footer .cols { display: flex; gap: 40px; flex-wrap: wrap; margin-bottom: 18px; }
+  footer .cols div { min-width: 130px; }
+  footer .cols b { display: block; color: var(--ink); font-size: 13px; margin-bottom: 8px; }
+  footer .cols a { display: block; margin-bottom: 5px; }
+  footer a:hover { color: var(--brand); }
+
+  /* 演示提示条（可关闭，仅本地演示用） */
+  #hint {
+    position: fixed; left: 18px; bottom: 18px; z-index: 40;
+    max-width: 320px; background: #111827; color: #fff; border-radius: 10px;
+    padding: 12px 14px; font-size: 13px; line-height: 1.55;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  }
+  #hint b { color: #86efac; }
+  #hint .close {
+    position: absolute; top: 6px; right: 8px; cursor: pointer;
+    color: #9ca3af; font-size: 15px; line-height: 1;
+  }
+  #hint .meta { margin-top: 7px; font-size: 11.5px; color: #9ca3af; word-break: break-all; }
+  #hint.warn { background: #7f1d1d; }
+  #hint.warn b { color: #fecaca; }
+
+  @media (max-width: 780px) {
+    .hero h1 { font-size: 30px; }
+    .cards { grid-template-columns: 1fr; }
+    .nav a.link { display: none; }
+    #hint { max-width: 240px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="logo">云仓<span>优选</span></div>
+    <a class="link" href="#features">服务优势</a>
+    <a class="link" href="#service">配送保障</a>
+    <a class="link" href="#faq">常见问题</a>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="openChat()">在线咨询</button>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>全国次日达的<br />生鲜电商平台</h1>
+    <p class="sub">产地直采 · 冷链直达 · 坏果包赔。覆盖 300+ 城市，晚上下单，明早到家。</p>
+    <div class="cta">
+      <button class="btn primary lg" onclick="openChat()">立即咨询客服</button>
+      <a class="btn lg" href="#features">了解服务</a>
+    </div>
+    <div class="badges">
+      <span><b>300+</b> 覆盖城市</span>
+      <span><b>24h</b> 平均送达</span>
+      <span><b>99.2%</b> 好评率</span>
+      <span><b>7×24</b> 在线客服</span>
+    </div>
+  </div>
+</div>
+
+<div class="strip">
+  <div class="wrap inner">
+    <div class="item"><b>2.8 万</b>在售 SKU</div>
+    <div class="item"><b>48 小时</b>无理由退换</div>
+    <div class="item"><b>0 元</b>起送门槛</div>
+    <div class="item"><b>全程冷链</b>温控可查</div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>为什么选择我们</h2>
+    <p class="lead">从产地到餐桌，每一个环节都可追溯。</p>
+    <div class="cards">
+      <div class="card">
+        <div class="ico">🚚</div>
+        <h3>次日达冷链</h3>
+        <p>自建冷链干线，全程 0-4℃ 温控，超时必赔。</p>
+      </div>
+      <div class="card">
+        <div class="ico">🛡️</div>
+        <h3>坏果包赔</h3>
+        <p>收货 24 小时内上传照片，无需寄回，直接补发或退款。</p>
+      </div>
+      <div class="card">
+        <div class="ico">💬</div>
+        <h3>7×24 在线客服</h3>
+        <p>点右下角气泡，随时有人工客服为您服务。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="service" style="background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <h2>配送与售后保障</h2>
+    <p class="lead">下单后可在「我的订单」实时查看物流；售后问题可直接联系在线客服。</p>
+    <div class="cards">
+      <div class="card"><h3>发货时效</h3><p>现货 24 小时内发货，预售按页面标注时间发出。</p></div>
+      <div class="card"><h3>退换政策</h3><p>非生鲜商品 7 天无理由；生鲜支持坏果包赔。</p></div>
+      <div class="card"><h3>发票开具</h3><p>支持电子普票与增值税专票，下单时可备注。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>常见问题</h2>
+    <p class="lead">没找到答案？点右下角气泡直接问客服。</p>
+    <div class="cards">
+      <div class="card"><h3>快递几天能到？</h3><p>同城 1-2 天，跨省 2-5 天，可在订单页查看物流。</p></div>
+      <div class="card"><h3>可以修改地址吗？</h3><p>未发货可自助修改，已发货请联系客服协助。</p></div>
+      <div class="card"><h3>怎么申请退款？</h3><p>订单页点「申请售后」，选择原因后提交即可。</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div><b>关于我们</b><a href="#">品牌故事</a><a href="#">加入我们</a></div>
+      <div><b>帮助中心</b><a href="#">配送说明</a><a href="#">售后政策</a></div>
+      <div><b>联系我们</b><a href="#">在线客服</a><a href="#">service@example.com</a></div>
+    </div>
+    <div>© 2026 云仓优选（演示页面，非真实商家）</div>
+  </div>
+</footer>
+
+<div id="hint">
+  <span class="close" onclick="document.getElementById('hint').remove()">✕</span>
+  这是演示页。<b>点右下角气泡</b>以客户身份发起咨询，坐席在 Chatwoot 后台回复。
+  <div class="meta" id="hintMeta">连接中…</div>
+</div>
+
+<script>
+  /* ---------------- Chatwoot Widget 接入 ---------------- */
+  var params = new URLSearchParams(location.search);
+  var BASE_URL = (params.get('cw') || ('http://' + (location.hostname || 'localhost') + ':3000')).replace(/\/+$/, '');
+  var WEBSITE_TOKEN = params.get('token') || 'fPyiYpNjapiXhHfquvRsBMgU';
+  var hint = document.getElementById('hint');
+  var meta = document.getElementById('hintMeta');
+  meta.textContent = BASE_URL;
+
+  function openChat() {
+    if (window.$chatwoot && typeof window.$chatwoot.toggle === 'function') {
+      window.$chatwoot.toggle('open');
+    } else {
+      hint.className = 'warn';
+      meta.textContent = '还没连上 ' + BASE_URL;
+    }
+  }
+
+  (function (d, t) {
+    var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+    g.src = BASE_URL + '/packs/js/sdk.js';
+    g.defer = true; g.async = true;
+    g.onload = function () {
+      window.chatwootSDK.run({ websiteToken: WEBSITE_TOKEN, baseUrl: BASE_URL });
+    };
+    g.onerror = function () {
+      hint.className = 'warn';
+      meta.textContent = '❌ 加载失败：' + BASE_URL + '（Chatwoot 没起或地址不对）';
+    };
+    s.parentNode.insertBefore(g, s);
+  })(document, 'script');
+
+  /* 5 秒后自检气泡是否就位 */
+  setTimeout(function () {
+    if (window.$chatwoot) {
+      meta.textContent = '✅ 已连接 ' + BASE_URL;
+    } else {
+      hint.className = 'warn';
+      meta.textContent = '⚠️ 未检测到客服组件：确认 ' + BASE_URL + ' 可访问、且已开启 widget';
+    }
+  }, 5000);
+</script>
+</body>
+</html>

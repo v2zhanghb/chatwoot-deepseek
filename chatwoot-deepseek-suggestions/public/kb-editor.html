@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>知识库编辑器 · 话术助手</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #e3e6ea;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-soft: #eff4ff;
+    --warn-bg: #fff8e6;
+    --warn-border: #f0c36d;
+    --err: #d1242f;
+    --ok: #1a7f37;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.55 -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 18px;
+  }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  h1 { font-size: 15px; margin: 0 12px 0 0; font-weight: 650; }
+  .stat { color: var(--muted); font-size: 12.5px; }
+  .stat b { color: var(--text); font-weight: 600; }
+  .spacer { flex: 1 1 auto; }
+  button {
+    font: inherit; font-size: 13px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #fff; color: var(--text);
+    cursor: pointer;
+  }
+  button:hover { background: #f2f4f7; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #1d4ed8; }
+  button.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 4px 8px; }
+  button.ghost:hover { background: #eef1f4; color: var(--text); }
+  button.danger:hover { color: var(--err); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input, textarea, select {
+    font: inherit; width: 100%;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff; color: var(--text);
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 62px; line-height: 1.5; }
+  .filter { max-width: 280px; }
+  main { padding: 16px 18px 60px; max-width: 1080px; margin: 0 auto; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .card.dup { border-color: var(--warn-border); background: var(--warn-bg); }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .idx {
+    min-width: 22px; height: 22px; line-height: 22px; text-align: center;
+    background: var(--accent-soft); color: var(--accent);
+    border-radius: 6px; font-size: 12px; font-weight: 600; padding: 0 6px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 3px 1px; }
+  .tag {
+    display: inline-block; font-size: 11.5px; padding: 1px 7px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .tag.warn { background: #fdf0d5; color: #8a5a00; }
+  .tag.err { background: #ffe9e9; color: var(--err); }
+  .hint { color: var(--muted); font-size: 12px; }
+  .empty { text-align: center; color: var(--muted); padding: 48px 16px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    background: #1f2328; color: #fff; padding: 9px 16px; border-radius: 8px;
+    font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .toast.show { opacity: .94; }
+  .toast.err { background: var(--err); }
+  .drop { border: 1.5px dashed var(--border); border-radius: 10px; padding: 26px; text-align: center; color: var(--muted); }
+  .drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>知识库编辑器</h1>
+    <span class="stat" id="stat">加载中…</span>
+    <span class="spacer"></span>
+    <input class="filter" id="filter" type="search" placeholder="搜索 问题 / 分类 / 关键词 / id…" />
+    <button id="btn-load">从服务端载入</button>
+    <button id="btn-import">导入文件</button>
+    <button id="btn-add">+ 新增</button>
+    <button id="btn-csv">导出 CSV</button>
+    <button class="primary" id="btn-json">导出 JSON</button>
+    <input type="file" id="file" accept=".json,.csv,application/json,text/csv" hidden />
+  </div>
+</header>
+
+<main>
+  <div id="drop" class="drop">把 faq.json 或 faq.csv 拖到这里，或点右上「导入文件」</div>
+  <div id="list"></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ---------------- 状态 ---------------- */
+const state = { faqs: [], meta: {}, filter: '', dupPairs: new Set(), errors: {} };
+const $ = (id) => document.getElementById(id);
+const el = { list: $('list'), stat: $('stat'), filter: $('filter'), toast: $('toast') };
+
+/* ---------------- 工具 ---------------- */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function toast(msg, isErr) {
+  el.toast.textContent = msg;
+  el.toast.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.toast.className = 'toast'; }, 2200);
+}
+function download(name, content, mime) {
+  const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ---------------- 相似度（与服务端同款 bigram 余弦） ---------------- */
+function toBigrams(text) {
+  const t = String(text || '').toLowerCase();
+  const g = new Map();
+  const add = (k) => g.set(k, (g.get(k) || 0) + 1);
+  (t.match(/[a-z0-9]+/g) || []).forEach(add);
+  const zh = t.replace(/[^\u4e00-\u9fa5]+/g, '');
+  for (let i = 0; i < zh.length; i++) { add(zh[i]); if (i + 1 < zh.length) add(zh.slice(i, i + 2)); }
+  return g;
+}
+function cosine(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  a.forEach((v) => { na += v * v; });
+  b.forEach((v, k) => { nb += v * v; if (a.has(k)) dot += v * a.get(k); });
+  if (!na || !nb) return 0;
+  return dot / Math.sqrt(na * nb);
+}
+const docText = (f) => [f.question, ...(f.keywords || []), f.answer].join(' ');
+
+/* ---------------- CSV（与 kb-tool.js 一致） ---------------- */
+function parseCsv(text) {
+  const s = String(text).replace(/^\uFEFF/, '');
+  const rows = []; let row = []; let field = ''; let inQ = false; let i = 0;
+  const endF = () => { row.push(field); field = ''; };
+  while (i < s.length) {
+    const ch = s[i];
+    if (inQ) {
+      if (ch === '"') { if (s[i + 1] === '"') { field += '"'; i += 2; continue; } inQ = false; i++; continue; }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { inQ = true; i++; continue; }
+    if (ch === ',') { endF(); i++; continue; }
+    if (ch === '\r') { i++; continue; }
+    if (ch === '\n') { endF(); rows.push(row); row = []; i++; continue; }
+    field += ch; i++;
+  }
+  if (field !== '' || row.length) { endF(); rows.push(row); }
+  return rows.filter((r) => r.some((c) => String(c).trim() !== '') && !/^\s*#/.test(r[0] || ''));
+}
+const ALIAS = {
+  id: 'id', 编号: 'id', category: 'category', 分类: 'category',
+  question: 'question', 问题: 'question', 标题: 'question',
+  keywords: 'keywords', 关键词: 'keywords', 关键字: 'keywords',
+  answer: 'answer', 答案: 'answer', 回复: 'answer'
+};
+function csvToFaqs(text) {
+  const rows = parseCsv(text);
+  if (!rows.length) throw new Error('CSV 为空');
+  const header = rows[0].map((h) => ALIAS[String(h).trim()] || ALIAS[String(h).trim().toLowerCase()] || '');
+  if (!header.includes('question') || !header.includes('answer')) {
+    throw new Error('CSV 缺少 question / answer 列，当前表头：' + rows[0].join(','));
+  }
+  return rows.slice(1).map((cells, i) => {
+    const r = {};
+    header.forEach((c, n) => { if (c) r[c] = String(cells[n] || '').trim(); });
+    return {
+      id: r.id || 'faq_auto_' + String(i + 1).padStart(3, '0'),
+      category: r.category || '未分类',
+      question: r.question || '',
+      keywords: (r.keywords || '').split(/[|、,;；]/).map((k) => k.trim()).filter(Boolean),
+      answer: r.answer || ''
+    };
+  }).filter((f) => f.question || f.answer);
+}
+function csvCell(v) {
+  const s = v == null ? '' : String(v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function faqsToCsv(faqs) {
+  const rows = [['id', 'category', 'question', 'keywords', 'answer']];
+  faqs.forEach((f) => rows.push([f.id, f.category, f.question, (f.keywords || []).join('|'), f.answer]));
+  return '\uFEFF' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+/** keywords 数组折回单行，与服务端 build 输出保持一致 */
+function stringifyDoc(doc) {
+  return JSON.stringify(doc, null, 2).replace(/"keywords": \[\n([\s\S]*?)\n(\s*)\]/g, (m, inner) => {
+    const items = inner.split('\n').map((l) => l.trim().replace(/,$/, '')).filter(Boolean);
+    return '"keywords": [' + items.join(', ') + ']';
+  });
+}
+
+/* ---------------- 校验与重复检测 ---------------- */
+function revalidate() {
+  const errors = {};
+  const seen = new Map();
+  state.faqs.forEach((f, i) => {
+    const rowErr = [];
+    if (!String(f.id || '').trim()) rowErr.push('id 为空');
+    else if (seen.has(f.id)) rowErr.push('id 与第 ' + (seen.get(f.id) + 1) + ' 条重复');
+    else seen.set(f.id, i);
+    if (!String(f.question || '').trim()) rowErr.push('问题为空');
+    if (!String(f.answer || '').trim()) rowErr.push('答案为空');
+    if (rowErr.length) errors[i] = rowErr;
+  });
+
+  state.dupPairs = new Set();
+  const vecs = state.faqs.map((f) => (f.question ? toBigrams(docText(f)) : null));
+  for (let i = 0; i < state.faqs.length; i++) {
+    if (!vecs[i]) continue;
+    for (let j = i + 1; j < state.faqs.length; j++) {
+      if (!vecs[j]) continue;
+      if (cosine(vecs[i], vecs[j]) >= 0.75) { state.dupPairs.add(i); state.dupPairs.add(j); }
+    }
+  }
+  state.errors = errors;
+}
+
+/* ---------------- 渲染 ---------------- */
+function visibleIndexes() {
+  const q = state.filter.trim().toLowerCase();
+  if (!q) return state.faqs.map((_, i) => i);
+  return state.faqs
+    .map((f, i) => (docText(f).toLowerCase().includes(q) || String(f.id).toLowerCase().includes(q) ? i : -1))
+    .filter((i) => i >= 0);
+}
+
+function render() {
+  revalidate();
+  const cats = [...new Set(state.faqs.map((f) => f.category).filter(Boolean))];
+  const errCount = Object.keys(state.errors).length;
+  el.stat.innerHTML =
+    '共 <b>' + state.faqs.length + '</b> 条 · 分类 <b>' + cats.length + '</b> · 重复可疑 <b>' + (state.dupPairs.size / 2 | 0) + '</b>' +
+    (errCount ? ' · <span style="color:var(--err)">错误 <b>' + errCount + '</b></span>' : '');
+
+  const idxs = visibleIndexes();
+  if (!state.faqs.length) {
+    el.list.innerHTML = '<div class="empty">还没有内容，点「从服务端载入」或「导入文件」开始。</div>';
+    return;
+  }
+  if (!idxs.length) {
+    el.list.innerHTML = '<div class="empty">没有匹配「' + esc(state.filter) + '」的条目。</div>';
+    return;
+  }
+
+  el.list.innerHTML = idxs.map((i) => {
+    const f = state.faqs[i];
+    const errs = state.errors[i] || [];
+    const dup = state.dupPairs.has(i);
+    const cls = 'card' + (dup || errs.length ? ' dup' : '');
+    return '' +
+      '<div class="' + cls + '" data-i="' + i + '">' +
+        '<div class="card-head">' +
+          '<span class="idx">' + (i + 1) + '</span>' +
+          (errs.length ? '<span class="tag err">' + esc(errs.join('；')) + '</span>' : '') +
+          (dup && !errs.length ? '<span class="tag warn">问题疑似与其它条目重复</span>' : '') +
+          '<span class="spacer"></span>' +
+          '<button class="ghost" data-act="up" title="上移">↑</button>' +
+          '<button class="ghost" data-act="down" title="下移">↓</button>' +
+          '<button class="ghost" data-act="dup" title="复制本条">复制</button>' +
+          '<button class="ghost danger" data-act="del" title="删除">删除</button>' +
+        '</div>' +
+        '<div class="grid">' +
+          '<div><label>id（坐席端会显示，改动会使历史引用失效）</label>' +
+            '<input data-field="id" value="' + esc(f.id) + '" /></div>' +
+          '<div><label>分类</label>' +
+            '<input data-field="category" value="' + esc(f.category) + '" list="cats" /></div>' +
+          '<div class="full"><label>问题（客户会怎么问）</label>' +
+            '<input data-field="question" value="' + esc(f.question) + '" /></div>' +
+          '<div class="full"><label>关键词（用 | 分隔，命中会加权）</label>' +
+            '<input data-field="keywords" value="' + esc((f.keywords || []).join('|')) + '" /></div>' +
+          '<div class="full"><label>标准答案（DeepSeek 会照此作答）</label>' +
+            '<textarea data-field="answer">' + esc(f.answer) + '</textarea></div>' +
+        '</div>' +
+      '</div>';
+  }).join('') +
+  '<datalist id="cats">' + cats.map((c) => '<option value="' + esc(c) + '"></option>').join('') + '</datalist>';
+}
+
+/* ---------------- 交互 ---------------- */
+el.list.addEventListener('input', (e) => {
+  const field = e.target.dataset.field;
+  if (!field) return;
+  const card = e.target.closest('.card');
+  const i = Number(card.dataset.i);
+  const v = e.target.value;
+  if (field === 'keywords') {
+    state.faqs[i].keywords = v.split(/[|、,;；]/).map((k) => k.trim()).filter(Boolean);
+  } else {
+    state.faqs[i][field] = v;
+  }
+  // 只更新统计与错误标记，不重绘输入框（避免光标跳动）
+  revalidate();
+  const errs = state.errors[i] || [];
+  const head = card.querySelector('.card-head');
+  head.querySelectorAll('.tag').forEach((t) => t.remove());
+  const after = head.querySelector('.idx');
+  const insert = (html) => { const s = document.createElement('span'); s.innerHTML = html; const first = s.firstChild; after.after(first); };
+  if (errs.length) insert('<span class="tag err">' + esc(errs.join('；')) + '</span>');
+  else if (state.dupPairs.has(i)) insert('<span class="tag warn">问题疑似与其它条目重复</span>');
+  el.stat.innerHTML = el.stat.innerHTML; // 触发重排
+  const errCount = Object.keys(state.errors).length;
+  const cats = [...new Set(state.faqs.map((f) => f.category).filter(Boolean))];
+  el.stat.innerHTML = '共 <b>' + state.faqs.length + '</b> 条 · 分类 <b>' + cats.length + '</b> · 重复可疑 <b>' + (state.dupPairs.size / 2 | 0) + '</b>' +
+    (errCount ? ' · <span style="color:var(--err)">错误 <b>' + errCount + '</b></span>' : '');
+});
+
+el.list.addEventListener('click', (e) => {
+  const act = e.target.dataset && e.target.dataset.act;
+  if (!act) return;
+  const card = e.target.closest('.card');
+  const i = Number(card.dataset.i);
+  if (act === 'del') {
+    if (!confirm('删除第 ' + (i + 1) + ' 条：「' + state.faqs[i].question.slice(0, 20) + '」？')) return;
+    state.faqs.splice(i, 1);
+  } else if (act === 'up' && i > 0) {
+    [state.faqs[i - 1], state.faqs[i]] = [state.faqs[i], state.faqs[i - 1]];
+  } else if (act === 'down' && i < state.faqs.length - 1) {
+    [state.faqs[i + 1], state.faqs[i]] = [state.faqs[i], state.faqs[i + 1]];
+  } else if (act === 'dup') {
+    const copy = JSON.parse(JSON.stringify(state.faqs[i]));
+    copy.id = copy.id + '_copy';
+    state.faqs.splice(i + 1, 0, copy);
+  } else { return; }
+  render();
+});
+
+el.filter.addEventListener('input', () => { state.filter = el.filter.value; render(); });
+
+$('btn-add').onclick = () => {
+  state.faqs.unshift({
+    id: 'faq_new_' + String(state.faqs.length + 1).padStart(3, '0'),
+    category: state.faqs[0] ? state.faqs[0].category : '未分类',
+    question: '', keywords: [], answer: ''
+  });
+  state.filter = '';
+  el.filter.value = '';
+  render();
+  el.list.scrollIntoView({ block: 'start' });
+};
+
+/* ---------------- 导入 ---------------- */
+function loadDoc(text, name) {
+  const isCsv = /\.csv$/i.test(name) || !/^\s*[{[]/.test(text);
+  let faqs;
+  let meta = state.meta;
+  if (isCsv) {
+    faqs = csvToFaqs(text);
+  } else {
+    let doc;
+    try { doc = JSON.parse(text); } catch (e) { throw new Error('JSON 解析失败：' + e.message); }
+    faqs = Array.isArray(doc) ? doc : doc.faqs;
+    if (!Array.isArray(faqs)) throw new Error('JSON 里找不到 faqs 数组');
+    meta = { version: doc.version, updatedAt: doc.updatedAt, note: doc.note };
+  }
+  state.faqs = faqs.map((f) => ({
+    id: f.id || '',
+    category: f.category || '未分类',
+    question: f.question || '',
+    keywords: Array.isArray(f.keywords) ? f.keywords : String(f.keywords || '').split(/[|、,;；]/).filter(Boolean),
+    answer: f.answer || ''
+  }));
+  state.meta = meta;
+  state.filter = '';
+  el.filter.value = '';
+  render();
+  toast('已载入 ' + state.faqs.length + ' 条');
+}
+
+$('btn-import').onclick = () => $('file').click();
+$('file').onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { try { loadDoc(String(r.result), f.name); } catch (err) { toast(err.message, true); } };
+  r.readAsText(f, 'utf-8');
+  e.target.value = '';
+};
+
+const drop = $('drop');
+['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove('over')));
+drop.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { try { loadDoc(String(r.result), f.name); } catch (err) { toast(err.message, true); } };
+  r.readAsText(f, 'utf-8');
+});
+drop.addEventListener('click', () => $('file').click());
+
+/* ---------------- 载入 / 导出 ---------------- */
+$('btn-load').onclick = async () => {
+  try {
+    const r = await fetch('/kb', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const faqs = Array.isArray(data) ? data : data.faqs;
+    if (!Array.isArray(faqs)) throw new Error('返回结构异常');
+    state.meta = { version: data.version, updatedAt: data.updatedAt, note: data.note };
+    state.faqs = faqs;
+    state.filter = '';
+    el.filter.value = '';
+    render();
+    toast('已从服务端载入 ' + faqs.length + ' 条');
+  } catch (e) {
+    toast('载入失败：' + e.message + '（可改用「导入文件」）', true);
+  }
+};
+
+$('btn-csv').onclick = () => {
+  if (!state.faqs.length) return toast('没有内容', true);
+  download('faq.csv', faqsToCsv(state.faqs), 'text/csv;charset=utf-8');
+  toast('已导出 faq.csv');
+};
+
+$('btn-json').onclick = () => {
+  if (!state.faqs.length) return toast('没有内容', true);
+  const errCount = Object.keys(state.errors).length;
+  if (errCount && !confirm('还有 ' + errCount + ' 条存在错误（id 重复 / 问题或答案为空），仍要导出吗？')) return;
+  const doc = {
+    version: state.meta.version || 'v1',
+    updatedAt: new Date().toISOString().slice(0, 10),
+    note: state.meta.note || '话术助手知识库。answer 供 DeepSeek 生成建议时参考。',
+    faqs: state.faqs
+  };
+  download('faq.json', stringifyDoc(doc) + '\n', 'application/json;charset=utf-8');
+  toast('已导出 faq.json，覆盖服务器 kb/faq.json 即生效');
+};
+
+/* 首次尝试自动载入 */
+$('btn-load').click();
+</script>
+</body>
+</html>

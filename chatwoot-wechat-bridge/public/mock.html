@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="il2ZngVphURpxxAwVLjDJ3">
+<head data-page-node-id="C0E4fiIlFSaQctIysYeFJL">
+  <meta charset="utf-8" data-page-node-id="eN2Tx0ECrGMnqKZULIbtHD" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="EGsGENDjpAktzotayQifdq" />
+  <title>模拟微信用户 · 桥接测试台</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: #f5f6f8; color: #1f2328; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .sub { color: #656d76; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; align-items: start; }
+    .card { background: #fff; border: 1px solid #d8dee4; border-radius: 10px; padding: 16px; }
+    .card h2 { font-size: 14px; margin: 0 0 12px; color: #24292f; }
+    label { display: block; font-size: 12px; color: #656d76; margin: 10px 0 4px; }
+    input, textarea, button { font: inherit; }
+    input, textarea { width: 100%; padding: 8px 10px; border: 1px solid #d8dee4; border-radius: 6px; background: #fff; color: #1f2328; }
+    textarea { min-height: 72px; resize: vertical; }
+    button { margin-top: 14px; width: 100%; padding: 9px 14px; border: 0; border-radius: 6px; background: #1f883d; color: #fff; cursor: pointer; }
+    button:hover { background: #1a7f37; }
+    button.ghost { background: #f6f8fa; color: #1f2328; border: 1px solid #d8dee4; }
+    pre { background: #f6f8fa; border: 1px solid #d8dee4; border-radius: 6px; padding: 10px; overflow: auto; max-height: 340px; font-size: 12px; margin: 0; }
+    .row { display: flex; gap: 8px; }
+    .row button { margin-top: 8px; }
+    .msg { border-left: 3px solid #1f883d; padding: 8px 10px; background: #f6f8fa; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-size: 13px; }
+    .msg .meta { color: #656d76; font-size: 11px; }
+    .hint { font-size: 12px; color: #656d76; margin-top: 12px; }
+    code { background: #f6f8fa; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body data-page-node-id="ZSrQhr8ASrvmD2gtbGwo5A">
+  <h1 data-page-node-id="lcviValptO08N4pujOcQEO">模拟微信用户 · 桥接测试台</h1>
+  <div class="sub" data-page-node-id="G0WfllxX7rh92kUeD4h3Wq">把这里当成「微信客户」发消息 → 观察是否进入 Chatwoot；在 Chatwoot 里回复后，右侧会显示发回微信的内容。</div>
+
+  <div class="grid" data-page-node-id="Phv221GpbnPmknGC2NW8an">
+    <div class="card" data-page-node-id="SW1dAY6XKLgj040lnVgD4j">
+      <h2 data-page-node-id="pKvCfghtqmmBgLXhANTsai">① 客户发消息（模拟微信客服回调）</h2>
+      <label data-page-node-id="ENgjMMehiRlAuuxdz59Z81">客服账号 open_kfid</label>
+      <input id="openKfId" value="wkMOCK001" data-page-node-id="Pc7Pk1CBGanGNupHax2dxG" />
+      <label data-page-node-id="qhQJoPf1sT9BPNWkinKMUc">客户 external_userid</label>
+      <input id="externalUserId" value="wmMOCKUSER001" data-page-node-id="5QMxEVv5rwxcCQrHpWpkG2" />
+      <label data-page-node-id="vzGZUeV6FBiBq21PoeWWOg">消息内容</label>
+      <textarea id="content">你好，我想问下发货时间</textarea>
+      <button id="send" data-page-node-id="CNnLYod4ybhTKyvX1udxT1">发送到桥接</button>
+      <button class="ghost" id="reset" data-page-node-id="A0BZ706Nw8SFlz3SxX0jTf">清空桥接状态</button>
+      <div class="hint" data-page-node-id="jOR3kHglqCHwBYlwCRZ3kF">
+        发送成功后去 Chatwoot 的「微信客服（桥接）」收件箱查看新会话。<br  data-page-node-id="yAKzDlyObiCPCQVslRJuxH"/>
+        换个 <code data-page-node-id="u8HyncVg3krGlhUNBimPTq">external_userid</code> 就是另一个客户。
+      </div>
+    </div>
+
+    <div class="card" data-page-node-id="OBCAiH4gMrJPZiRUXkZTDB">
+      <h2 data-page-node-id="EuZhTHkII8Eq8WknnpVpYS">② 发往微信的消息（坐席/机器人回复）</h2>
+      <div class="row" data-page-node-id="lYsqizB9OJPQTV6jWMHNaG">
+        <button class="ghost" id="refresh" data-page-node-id="G5MMy4SQcvKXY44hD4gSK2">刷新</button>
+      </div>
+      <div id="outbox" style="margin-top:12px" data-page-node-id="lYaH2zGyjFbtG7N8dXgNiN"></div>
+      <pre id="state" data-page-node-id="zISJ1IJu5GX7AWjzG7Txd1"></pre>
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function send() {
+  const body = {
+    open_kfid: $('openKfId').value.trim(),
+    external_userid: $('externalUserId').value.trim(),
+    content: $('content').value
+  };
+  $('send').disabled = true;
+  try {
+    const res = await fetch('/mock/wechat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.status);
+    $('state').textContent = '已入站：' + JSON.stringify(data.result, null, 2);
+    refresh();
+  } catch (error) {
+    $('state').textContent = '发送失败：' + error.message;
+  } finally {
+    $('send').disabled = false;
+  }
+}
+
+async function refresh() {
+  const [outbox, state] = await Promise.all([
+    fetch('/mock/outbox').then((r) => r.json()),
+    fetch('/mock/state').then((r) => r.json())
+  ]);
+
+  $('outbox').innerHTML = outbox.items.length
+    ? outbox.items.slice().reverse().map((item) =>
+        `<div class="msg"><div class="meta">${item.ts} → ${item.external_userid}（${item.open_kfid}）</div>${escapeHtml(item.content)}</div>`
+      ).join('')
+    : '<div class="hint">暂无。去 Chatwoot 里回复一条试试。</div>';
+
+  $('state').textContent = '模式：' + state.mode + '\n映射：' + JSON.stringify(state.mappings, null, 2) + '\n统计：' + JSON.stringify(state.stats);
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+$('send').addEventListener('click', send);
+$('refresh').addEventListener('click', refresh);
+$('reset').addEventListener('click', async () => {
+  await fetch('/mock/reset', { method: 'POST' });
+  refresh();
+});
+
+refresh();
+setInterval(refresh, 4000);
+</script>
+</body>
+</html>

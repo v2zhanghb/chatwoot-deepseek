@@ -1,0 +1,17 @@
+# Chatwoot DeepSeek 自动回复机器人（AgentBot）
+# 与 chatwoot-local 栈同网络，Chatwoot 容器通过 http://chatwoot-deepseek-bot:8788/webhook 投递
+services:
+  deepseek-bot:
+    container_name: chatwoot-deepseek-bot
+    build: .
+    env_file: .env
+    ports:
+      - "8788:8788"
+    networks:
+      - chatwoot-local
+    restart: unless-stopped
+
+networks:
+  chatwoot-local:
+    name: chatwoot-local_default
+    external: true

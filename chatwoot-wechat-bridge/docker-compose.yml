@@ -1,0 +1,24 @@
+# 微信客服 ↔ Chatwoot 桥接服务
+# 与 chatwoot-local 栈同网络：容器内互访用 http://chatwoot:3000
+# Chatwoot 的 API 渠道 webhook 指向 http://chatwoot-wechat-bridge:8789/chatwoot/webhook
+services:
+  chatwoot-wechat-bridge:
+    container_name: chatwoot-wechat-bridge
+    build: .
+    env_file: .env
+    environment:
+      # 容器内访问 Chatwoot 用服务名
+      CHATWOOT_BASE_URL: http://chatwoot:3000
+      DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8789:8789"
+    networks:
+      - chatwoot-local
+    restart: unless-stopped
+
+networks:
+  chatwoot-local:
+    name: chatwoot-local_default
+    external: true

@@ -1,0 +1,123 @@
+# Chatwoot 阿里云部署（单机全家桶：Nginx + Web + Sidekiq + PG + Redis + 机器人 + 话术助手）
+#
+# ECS 目录约定（compose 内的 build/env_file 路径均按此布局）：
+#   /opt/chatwoot-deploy/                本目录（docker-compose.yml / .env / nginx/ / certs/）
+#   /opt/chatwoot-deepseek-bot/          自动回复机器人（含 Dockerfile 与 .env）
+#   /opt/chatwoot-deepseek-suggestions/  话术助手（含 Dockerfile 与 .env）
+#
+# Chatwoot 镜像：.env 的 CHATWOOT_IMAGE 指向 ACR 私有镜像或本地构建产物
+#
+# 启动： cp .env.example .env && 改好必改项 && docker compose up -d --build
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CHATWOOT_DOMAIN: ${CHATWOOT_DOMAIN}
+      SUGGESTIONS_DOMAIN: ${SUGGESTIONS_DOMAIN}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - chatwoot
+      - chatwoot-deepseek-suggestions
+    restart: unless-stopped
+
+  chatwoot:
+    image: ${CHATWOOT_IMAGE:-chatwoot-local:4.17.1}
+    container_name: chatwoot
+    entrypoint: docker/entrypoints/rails.sh
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - chatwoot-storage:/app/storage
+    # 不对公网暴露端口，只走 Nginx
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+    restart: unless-stopped
+
+  sidekiq:
+    image: ${CHATWOOT_IMAGE:-chatwoot-local:4.17.1}
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - chatwoot-storage:/app/storage
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+    volumes:
+      - chatwoot-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - chatwoot-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # 自动回复机器人：容器名保持不变，AgentBot 的 outgoing_url
+  # http://chatwoot-deepseek-bot:8788/webhook 走 compose 内网，零改动
+  chatwoot-deepseek-bot:
+    container_name: chatwoot-deepseek-bot
+    build: ../chatwoot-deepseek-bot
+    env_file: ../chatwoot-deepseek-bot/.env
+    depends_on:
+      - chatwoot
+    # 仅内网可达，不暴露端口
+    expose:
+      - "8788"
+    restart: unless-stopped
+
+  # 话术助手：由 Nginx 反代到 https://${SUGGESTIONS_DOMAIN}
+  chatwoot-deepseek-suggestions:
+    container_name: chatwoot-deepseek-suggestions
+    build: ../chatwoot-deepseek-suggestions
+    env_file: ../chatwoot-deepseek-suggestions/.env
+    depends_on:
+      - chatwoot
+    # 知识库外置挂载：改 ECS 上的 kb/faq.json 即生效（服务按 mtime 热加载），无需重建镜像
+    # 想用 OSS 当知识库时，见 README「知识库存储」一节
+    volumes:
+      - ../chatwoot-deepseek-suggestions/kb:/app/kb
+    expose:
+      - "8787"
+    restart: unless-stopped
+
+volumes:
+  chatwoot-postgres:
+  chatwoot-redis:
+  chatwoot-storage:

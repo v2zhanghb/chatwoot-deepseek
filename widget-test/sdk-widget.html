@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>示例商城 - 在线客服</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: #f4f6f8; }
+    .topbar { background: #2a6df4; color: #fff; padding: 14px 24px; font-size: 16px; font-weight: 600; }
+    .hero { max-width: 640px; margin: 40px auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+    .hero h1 { font-size: 22px; margin-bottom: 8px; }
+    .hero p { color: #666; line-height: 1.7; }
+    .hint { margin-top: 24px; padding: 14px 16px; background: #fff8e6; border: 1px solid #f0d48a; border-radius: 8px; color: #8a6d1a; font-size: 13px; line-height: 1.8; }
+    .hint b { color: #6b530f; }
+  </style>
+</head>
+<body>
+  <div class="topbar">🛒 示例商城 DemoShop</div>
+  <div class="hero">
+    <h1>欢迎来到示例商城</h1>
+    <p>这是一个模拟客户官网的测试页面，右下角的<b>聊天气泡</b>就是接入的 Chatwoot 在线客服。</p>
+    <div class="hint">
+      <b>测试步骤：</b><br>
+      ① 点击右下角气泡，打开聊天窗，用访客身份发一句话（如：“请问这个耳机支持退货吗？”）<br>
+      ② 到 Chatwoot 坐席端（localhost:3000）找到新会话并回复<br>
+      ③ 回到本页面看气泡里是否实时出现客服回复<br>
+      ④ 保持本页打开，观察坐席端那条回复是否出现<b>蓝色 ✓✓（已读）</b>
+    </div>
+  </div>
+
+  <script>
+    window.chatwootSettings = {
+      position: "right",
+      locale: "zh_CN",
+      type: "standard"
+    };
+    (function (d, t) {
+      var BASE_URL = "http://localhost:3000";
+      var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+      g.src = BASE_URL + "/packs/js/sdk.js";
+      g.defer = true; g.async = true;
+      g.onload = function () {
+        window.chatwootSDK.run({
+          websiteToken: "fPyiYpNjapiXhHfquvRsBMgU",
+          baseUrl: BASE_URL
+        });
+      };
+      s.parentNode.insertBefore(g, s);
+    })(document, "script");
+  </script>
+</body>
+</html>

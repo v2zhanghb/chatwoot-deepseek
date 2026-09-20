@@ -1,0 +1,16 @@
+{
+  "name": "chatwoot-wechat-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "微信客服 ↔ Chatwoot 桥接服务：微信客服回调 → Chatwoot API 渠道；坐席/机器人回复 → 微信客服 send_msg",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test \"test/*.test.js\"",
+    "setup": "node scripts/setup-chatwoot.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

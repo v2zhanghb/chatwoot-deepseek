@@ -1,0 +1,11 @@
+{
+  "name": "chatwoot-deepseek-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chatwoot 官网客服 DeepSeek 自动回复机器人 (AgentBot webhook)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/server.test.js"
+  }
+}

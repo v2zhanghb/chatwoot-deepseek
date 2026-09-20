@@ -1,0 +1,30 @@
+# Docker 部署续跑指南（重启系统后使用）
+# 状态时间: 2026-09-08 10:40
+# 已完成: Windows功能(WSL/虚拟机平台)已启用(待重启) | Docker Desktop 已安装 exit=0
+# 重启后：打开任意终端（管理员）按序执行，或直接对 WorkBuddy 说“重启好了”由 AI 续跑。
+
+# 1) 更新 WSL 内核
+wsl --update
+
+# 2) 启动 Docker Desktop 并等待引擎
+Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+#   等待约 30~90 秒，然后确认：
+docker info --format '{{.ServerVersion}}'   # 能打印版本号即引擎就绪
+
+# 3) 构建并启动 DeepSeek 话术助手（端口 8787）
+cd C:\Users\Administrator\Desktop\chatwoot-deepseek-suggestions
+docker compose up -d --build
+curl http://localhost:8787/healthz        # 期望 {"ok":true}
+
+# 4) 部署本机 Chatwoot（先数据库/缓存，再初始化，再起服务）
+cd C:\Users\Administrator\Desktop\chatwoot-local
+docker compose up -d postgres redis
+docker compose run --rm chatwoot bundle exec rails db:chatwoot_prepare
+docker compose up -d
+docker compose ps                          # 等 chatwoot healthy
+#   打开 http://localhost:3000 注册管理员
+
+# 5) 最后接线（填 Key 后在话术助手目录重建一次）
+#   编辑 chatwoot-deepseek-suggestions\.env → DEEPSEEK_API_KEY=你的密钥
+#   docker compose up -d --build
+#   Chatwoot → Settings → Integrations → Dashboard apps → URL http://localhost:8787

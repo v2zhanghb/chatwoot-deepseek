@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="hlXRQFhpk5WwOMxYui6Wps">
+<head data-page-node-id="MKIJG53MfWvLB6EMfjHy4n">
+  <meta charset="utf-8" data-page-node-id="bTQBuJsmTwwsI1xjTKAi1E" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="0K3EVgyAWHANFD2DlqlVUK" />
+  <title>DeepSeek 话术助手</title>
+  <link rel="stylesheet" href="styles.css" data-page-node-id="qpDIW4KV5Q5YL6rREFluj3" />
+</head>
+<body data-page-node-id="dqjwfDJE60uBLXa6NWB5vw">
+  <header class="topbar" data-page-node-id="MDyOD8WzHSNumNn6Jtez7C">
+    <div class="brand" data-page-node-id="aPvVZ8WUnmWZQ5vfRCWDd4">
+      <span class="logo" aria-hidden="true" data-page-node-id="mi9qOHvMZYOeaLAk3mruXt">✦</span>
+      <h1 data-page-node-id="EhW7fVqwBDKuH1u4dg9l3C">DeepSeek 话术助手</h1>
+      <span class="chip" id="status" data-page-node-id="1W9FnSLnLb48HFqtKEkvtu">等待会话…</span>
+    </div>
+  </header>
+
+  <main data-page-node-id="cbxDop4LVkEMPzfeWjt3of">
+    <section id="emptyState" class="card empty" data-page-node-id="pK8VzhLVQGfOo0plSPSF5R">
+      <p class="hint" data-page-node-id="MkonRqvim4q48fNXsfayja">嵌入 Chatwoot 后打开任意会话，即可基于最近公开消息生成话术。</p>
+      <p class="hint sub" data-page-node-id="yRFBYKs7y2NNXdVbDG0PXB">独立打开本页时没有会话上下文，可在下方“本地调试”粘贴文本试用。</p>
+    </section>
+
+    <section id="genRow" hidden data-page-node-id="TngQ8vZh9d0vOHOp3hoFmI">
+      <button id="genBtn" class="primary" data-page-node-id="iENnB9BAJoePuLqsVUZTHA">生成推荐话术</button>
+      <span id="meta" class="meta" data-page-node-id="A7n6RUGzNhLc1HQLE4KOz0"></span>
+    </section>
+
+    <section id="results" hidden data-page-node-id="DHzafL2CVXCHP7qUAWUr2g">
+      <h2 data-page-node-id="qswIFpBDZnnuSrBMmqbrYv">推荐话术 <span id="count" class="count" data-page-node-id="A3HcshJCTS5yxSaCgnaoTH"></span></h2>
+      <div id="list" data-page-node-id="a6zqDHUu2AX48rtcg8BK2M"></div>
+    </section>
+
+    <section id="manualCard" class="card" data-page-node-id="3QbbIEejWNq871SaGFaR26">
+      <h2 data-page-node-id="dI6aF2l9y2wbdyPc8skIfK">本地调试 <span class="tag" data-page-node-id="qzoFWwux4vwRIEynmAbf0e">不发送到 Chatwoot</span></h2>
+      <textarea id="manualText" rows="5" placeholder="嵌入 Chatwoot 时，客户最新消息会自动填到这里；也可手动粘贴文本测试&#10;例如：客户：你好，我想退货，怎么操作？"></textarea>
+      <div class="row" data-page-node-id="WO7m33TFj7DcoCQM4ucKFw">
+        <button id="manualBtn" class="ghost" data-page-node-id="XigTDQfMA8yeuJ85Vt8EO0">用上方文本生成</button>
+        <span id="manualHint" class="meta" data-page-node-id="o50WNRaIwwAW0sD6yq7RoM"></span>
+      </div>
+    </section>
+
+    <footer class="foot" data-page-node-id="B2VXJyJrKDwzGYST0tkDGo">
+      隐私保护：仅把最近公开文本消息发送给 DeepSeek；私密备注、附件、联系方式与自定义属性在前后端双重过滤，不会外传。结果仅供坐席审阅复制，不会自动发送。
+    </footer>
+  </main>
+
+  <div id="toast" class="toast" hidden data-page-node-id="zUcpJV7DqqDlNCRoh5k9Eq"></div>
+  <script src="app.js"></script>
+</body>
+</html>

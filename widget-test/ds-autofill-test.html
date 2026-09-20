@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>话术助手自动填入测试（模拟 Chatwoot 真实协议）</title>
+  <style>body{font-family:system-ui;margin:16px}iframe{width:430px;height:720px;border:1px solid #ccc;border-radius:8px}</style>
+</head>
+<body>
+  <h3>模拟 Chatwoot 父窗口（真实协议：JSON 字符串 appContext）</h3>
+  <p>面板应自动把最后一条客户消息填入"本地调试"文本框</p>
+  <iframe id="panel" src="http://127.0.0.1.nip.io:8787/"></iframe>
+  <script>
+    function makeContext() {
+      return {
+        event: 'appContext',
+        data: {
+          conversation: {
+            id: 6,
+            status: 'pending',
+            messages: [
+              { id: 1, message_type: 0, content: '你好，查询一下我的快递到哪了？', private: false, content_type: 'text' },
+              { id: 2, message_type: 1, content: '您好，请提供一下订单号。', private: false, content_type: 'text' },
+              { id: 3, message_type: 2, content: '会话已由系统标记', private: false, content_type: 'activity' },
+              { id: 4, message_type: 0, content: '订单号20260908找不到了，帮我查一下物流', private: false, content_type: 'text' }
+            ]
+          },
+          contact: { id: 4, name: '测试客户' },
+          currentAgent: { id: 1, name: '坐席' }
+        }
+      };
+    }
+    var f = document.getElementById('panel');
+    // 模拟 Chatwoot Frame.vue：收到面板握手请求后回推 appContext
+    window.addEventListener('message', function (e) {
+      if (e.data === 'chatwoot-dashboard-app:fetch-info') {
+        console.log('[test] 收到握手请求，回推 appContext');
+        f.contentWindow.postMessage(JSON.stringify(makeContext()), '*');
+      }
+    });
+    // 同时模拟 iframe load 后 Chatwoot 主动推一次（双保险）
+    f.addEventListener('load', function () {
+      setTimeout(function () {
+        f.contentWindow.postMessage(JSON.stringify(makeContext()), '*');
+      }, 800);
+    });
+  </script>
+</body>
+</html>
